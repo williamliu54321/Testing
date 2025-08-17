@@ -1,33 +1,27 @@
 import SwiftUI
-import CoreData
 
+// This is your main routing view. It decides what the user sees upon launch.
 struct ContentView: View {
-    // This flag determines if we show the onboarding. It's saved in UserDefaults.
-    @AppStorage("shouldShowOnboarding") var shouldShowOnboarding: Bool = true
-    
-    // This fetches all 'SurveyResponse' objects from Core Data and keeps the list updated.
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \SurveyResponse.submissionDate, ascending: false)],
-        animation: .default)
-    private var responses: FetchedResults<SurveyResponse>
+    // @AppStorage is a property wrapper that reads and writes from UserDefaults.
+    // It's the perfect tool for persisting simple state like a "first launch" flag.
+    // We give it a unique key and a default value of `false`.
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
 
     var body: some View {
-        NavigationView {
-            // Display the fetched responses in a list
-            List {
-                ForEach(responses) { response in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(response.name ?? "No Name").font(.headline)
-                        Text("Favorite Cuisine: \(response.favoriteCuisine ?? "N/A")")
-                        Text("Notifications: \(response.enableNotifications ? "On" : "Off")")
-                    }
-                }
+        // The core logic of the router:
+        // If the user has completed onboarding, show the main app.
+        if hasCompletedOnboarding {
+            MainAppView()
+        } else {
+            // Otherwise, show the onboarding flow.
+            // We provide the `onComplete` callback here. This is the code
+            // that will be executed when the OnboardingFlowView says it's done.
+            OnboardingFlowView {
+                // When the onboarding flow completes, we set our persistent
+                // flag to true. This will cause this ContentView to re-render
+                // and the `if` condition will now be true, showing MainAppView.
+                self.hasCompletedOnboarding = true
             }
-            .navigationTitle("Survey Results")
-        }
-        .fullScreenCover(isPresented: $shouldShowOnboarding) {
-            // When 'shouldShowOnboarding' is true, this view covers the screen.
-            OnboardingView(shouldShowOnboarding: $shouldShowOnboarding)
         }
     }
 }
